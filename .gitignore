@@ -1,0 +1,5 @@
+.env
+data/*
+!data/.keep
+backups/
+__pycache__/

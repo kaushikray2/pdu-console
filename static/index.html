@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PDU Console</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div id="authView" class="auth-wrap" hidden>
+  <div class="auth-card">
+    <div class="logo">⚡</div>
+    <h1>PDU Console</h1>
+    <p class="muted">APC Switched Rack PDUs</p>
+    <div id="setupForm" hidden>
+      <p class="muted small">First run — create the console password. It protects switching on every PDU managed here.</p>
+      <input type="password" id="setupPw" placeholder="New console password" autocomplete="new-password">
+      <input type="password" id="setupPw2" placeholder="Repeat it" autocomplete="new-password">
+      <button id="setupBtn" class="primary wide">Create password</button>
+    </div>
+    <div id="loginForm" hidden>
+      <input type="password" id="loginPw" placeholder="Console password" autocomplete="current-password">
+      <button id="loginBtn" class="primary wide">Sign in</button>
+    </div>
+    <p class="err" id="authErr"></p>
+  </div>
+  <footer class="foot">Developed by <a href="https://siliconbrane.com" target="_blank" rel="noopener">SiliconBrane Inc.</a> · v0.01</footer>
+</div>
+
+<div id="overviewView" hidden>
+  <header>
+    <div class="title-block">
+      <div class="logo small">⚡</div>
+      <div>
+        <h1>PDU Console</h1>
+        <p class="muted" id="ovMeta">All managed PDUs</p>
+      </div>
+    </div>
+    <div class="head-actions">
+      <button id="ovRefresh" title="Refresh all">↻ Refresh</button>
+      <button id="ovAdd">＋ Add PDU</button>
+      <button id="ovConsole">⚙ Console</button>
+      <button id="ovOut">Sign out</button>
+    </div>
+  </header>
+  <main>
+    <p class="err" id="ovErr"></p>
+    <div class="grid ov-grid" id="ovGrid"></div>
+    <p class="muted small" id="ovEmpty" hidden>No PDUs yet. Use <b>＋ Add PDU</b> to connect the first one — its IP, credentials and settings stay separate from every other PDU.</p>
+  </main>
+  <footer><p class="muted small">Each PDU is polled from its own management card at the interval set on its own settings page.</p></footer>
+  <footer class="foot">Developed by <a href="https://siliconbrane.com" target="_blank" rel="noopener">SiliconBrane Inc.</a> · v0.01</footer>
+</div>
+
+<div id="detailView" hidden>
+  <header>
+    <div class="title-block">
+      <div class="logo small">⚡</div>
+      <div>
+        <h1><span id="devTitle">PDU</span> <span class="muted thin">— APC Switched Rack PDU</span></h1>
+        <p class="muted" id="devMeta">Loading…</p>
+      </div>
+    </div>
+    <div class="head-actions">
+      <span class="pill ok" id="alarmPill">No alarms</span>
+      <span class="muted" id="updated">…</span>
+      <button id="backBtn">← All PDUs</button>
+      <button id="refreshBtn">↻ Refresh</button>
+      <button id="settingsBtn">⚙ Settings</button>
+      <button id="logoutBtn">Sign out</button>
+    </div>
+  </header>
+  <main>
+    <section class="loads">
+      <div class="load-card"><span class="k">Total load</span><span class="v" id="loadTotal">–</span></div>
+      <div id="bankCards" style="display:contents"></div>
+      <div class="load-card"><span class="k">Outlets on</span><span class="v" id="onCount">–</span></div>
+    </section>
+    <p class="err" id="mainErr"></p>
+    <section>
+      <h2>Groups <button id="newGroupBtn" class="mini">＋ New group</button></h2>
+      <div class="grid" id="groupGrid"></div>
+      <p class="muted small" id="noGroups">No groups yet. Outlets in a group switch together from the group card; their own cards grey out.</p>
+    </section>
+    <div id="banks"></div>
+  </main>
+  <footer><p class="muted small">Polled from this PDU's management card at the interval set in its Settings. Native UI: <a id="nativeLink" href="#" target="_blank" rel="noopener">open</a></p></footer>
+  <footer class="foot">Developed by <a href="https://siliconbrane.com" target="_blank" rel="noopener">SiliconBrane Inc.</a> · v0.01</footer>
+</div>
+
+<div id="settingsView" hidden>
+  <header>
+    <div class="title-block">
+      <div class="logo small">⚙</div>
+      <div>
+        <h1>Settings — <span id="setDevName">PDU</span></h1>
+        <p class="muted">This PDU only — nothing here affects the other PDUs.</p>
+      </div>
+    </div>
+    <div class="head-actions">
+      <button id="setBack">← Back to PDU</button>
+      <button id="setOut">Sign out</button>
+    </div>
+  </header>
+  <main class="settings-main">
+  <div class="setcard">
+    <h2>PDU connection</h2>
+    <p class="muted small">Where this console reaches this PDU's management card, and the login it uses. Changes are tested against the PDU first — nothing is saved unless the new settings connect. The console refuses any address on the blocked list (Console settings).</p>
+    <label for="setIp">PDU IP address / hostname</label>
+    <input type="text" id="setIp" placeholder="PDU IP address" autocomplete="off">
+    <label for="setName">Display name</label>
+    <input type="text" id="setName" placeholder="Display name" autocomplete="off">
+    <label for="setUser">PDU username</label>
+    <input type="text" id="setUser" placeholder="Username" autocomplete="off">
+    <label for="setPass">PDU password</label>
+    <input type="password" id="setPass" placeholder="Leave blank to keep the current password" autocomplete="new-password">
+    <button id="setConnSave" class="primary">Test &amp; save connection</button>
+    <p class="err" id="setConnMsg"></p>
+  </div>
+  <div class="setcard">
+    <h2>Outlet names</h2>
+    <p class="muted small">Names are written to the PDU itself (max 23 characters) — they show on the PDU's own pages too. A rename keeps the outlet's power delays and reboot duration exactly as they are.</p>
+    <div id="renameList"></div>
+    <p class="err" id="renameMsg"></p>
+  </div>
+  <div class="setcard">
+    <h2>Refresh interval</h2>
+    <p class="muted small">How often this console polls this PDU in the background.</p>
+    <label for="setPoll">Poll every</label>
+    <select id="setPoll"></select>
+    <button id="setPollSave">Save interval</button>
+    <p class="err" id="setPollMsg"></p>
+  </div>
+  <div class="setcard">
+    <h2>Recent activity — this PDU</h2>
+    <div id="activityList" class="activity"></div>
+  </div>
+  <div class="setcard danger">
+    <h2>Remove this PDU</h2>
+    <p class="muted small">Stops managing this PDU in the console and archives its settings, groups and locks (recoverable from the data folder). The PDU itself is untouched.</p>
+    <button id="removePduBtn" class="danger-btn">Remove PDU from console</button>
+    <p class="err" id="removeMsg"></p>
+  </div>
+  </main>
+  <footer class="foot">Developed by <a href="https://siliconbrane.com" target="_blank" rel="noopener">SiliconBrane Inc.</a> · v0.01</footer>
+</div>
+
+<div id="consoleView" hidden>
+  <header>
+    <div class="title-block">
+      <div class="logo small">⚙</div>
+      <div>
+        <h1>Console settings</h1>
+        <p class="muted">Shared by the whole console, not tied to one PDU.</p>
+      </div>
+    </div>
+    <div class="head-actions">
+      <button id="conBack">← All PDUs</button>
+      <button id="conOut">Sign out</button>
+    </div>
+  </header>
+  <main class="settings-main">
+  <div class="setcard">
+    <h2>Blocked addresses</h2>
+    <p class="muted small">The console will refuse to connect to these IP addresses or hostnames, for any PDU — use it for units this console must never touch (for example a production PDU).</p>
+    <label for="setBlocked">Blocked IPs / hostnames (comma-separated)</label>
+    <input type="text" id="setBlocked" placeholder="e.g. 192.168.1.99" autocomplete="off">
+    <button id="setBlockedSave">Save blocked list</button>
+    <p class="err" id="setBlockedMsg"></p>
+  </div>
+  <div class="setcard">
+    <h2>Safety</h2>
+    <p class="muted small">The console only ever contacts the PDUs it manages, and refuses any address on the blocked list as a connection target. Any outlet or group you lock with its 🔒 button needs the console password before it can be switched or unlocked.</p>
+  </div>
+  <div class="setcard">
+    <h2>Console password</h2>
+    <p class="muted small">This password signs you in and unlocks locked outlets and groups on every PDU. Changing it signs out other sessions.</p>
+    <label for="pwCur">Current password</label>
+    <input type="password" id="pwCur" autocomplete="current-password">
+    <label for="pwNew">New password</label>
+    <input type="password" id="pwNew" autocomplete="new-password">
+    <label for="pwNew2">Repeat new password</label>
+    <input type="password" id="pwNew2" autocomplete="new-password">
+    <button id="pwChangeBtn">Change password</button>
+    <p class="err" id="pwMsg"></p>
+  </div>
+  <div class="setcard">
+    <h2>Recent activity — all PDUs</h2>
+    <div id="conActivity" class="activity"></div>
+  </div>
+  </main>
+  <footer class="foot">Developed by <a href="https://siliconbrane.com" target="_blank" rel="noopener">SiliconBrane Inc.</a> · v0.01</footer>
+</div>
+
+<div id="groupModal" class="modal" hidden>
+  <div class="sheet">
+    <h3 id="grpTitle">New group</h3>
+    <input type="text" id="grpName" placeholder="Group name, e.g. servers" maxlength="40" autocomplete="off">
+    <p class="muted small">Tick the outlets that belong to this group (at least 2). An outlet can be in only one group.</p>
+    <div id="grpOutlets" class="pick-grid"></div>
+    <p class="err" id="grpErr"></p>
+    <div class="row">
+      <button id="grpCancel">Cancel</button>
+      <button id="grpDelete" class="danger-btn" hidden>Delete group</button>
+      <button id="grpSave" class="primary">Save group</button>
+    </div>
+  </div>
+</div>
+
+<div id="addModal" class="modal" hidden>
+  <div class="sheet">
+    <h3>Add a PDU</h3>
+    <p class="muted small">The connection is tested before anything is saved. This PDU gets its own settings, groups and locks.</p>
+    <label for="addIp">PDU IP address / hostname</label>
+    <input type="text" id="addIp" placeholder="e.g. 192.168.1.51" autocomplete="off">
+    <label for="addName">Display name</label>
+    <input type="text" id="addName" placeholder="e.g. Rack 2" autocomplete="off">
+    <label for="addUser">PDU username</label>
+    <input type="text" id="addUser" placeholder="Username" autocomplete="off">
+    <label for="addPass">PDU password</label>
+    <input type="password" id="addPass" placeholder="Password" autocomplete="new-password">
+    <p class="err" id="addErr"></p>
+    <div class="row">
+      <button id="addCancel">Cancel</button>
+      <button id="addSave" class="primary">Test &amp; add PDU</button>
+    </div>
+  </div>
+</div>
+
+<div id="confirmModal" class="modal" hidden>
+  <div class="sheet">
+    <h3 id="cfText">Are you sure?</h3>
+    <p class="muted small" id="cfSub"></p>
+    <div class="row">
+      <button id="cfCancel">Cancel</button>
+      <button id="cfOk" class="primary">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div id="pwModal" class="modal" hidden>
+  <div class="sheet">
+    <h3 id="pwText">Console password needed</h3>
+    <p class="muted small">That target is locked. Enter the console password to continue.</p>
+    <input type="password" id="pwInput" placeholder="Console password" autocomplete="current-password">
+    <p class="err" id="pwErr"></p>
+    <div class="row">
+      <button id="pwCancel">Cancel</button>
+      <button id="pwOk" class="primary">Continue</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" hidden></div>
+<script src="/app.js"></script>
+</body>
+</html>

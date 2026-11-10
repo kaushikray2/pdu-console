@@ -1,0 +1,10 @@
+services:
+  pdu-console:
+    build: .
+    image: pdu-console:alpine
+    container_name: pdu-console
+    restart: unless-stopped
+    ports:
+      - "${PDU_CONSOLE_PORT:-8092}:8080"
+    volumes:
+      - ./data:/app/data
